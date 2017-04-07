@@ -11,7 +11,7 @@ function! asyncomplete#sources#flow#completor(opt, ctx) abort
 
     let l:config = get(a:opt, 'config', {})
     if get(l:config, 'prefer_local', 1)
-        let l:flowbin_path = s:resolve_flowbin_path(l:file, get(l:config, 'flowbin_path', 'flow'))
+        let l:flowbin_path = s:resolve_flowbin_path(l:file, 'flow')
     else
         let l:flowbin_path = get(l:config, 'flowbin_path', 'flow')
     endif
