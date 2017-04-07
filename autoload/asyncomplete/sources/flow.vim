@@ -1,4 +1,4 @@
-let s:iswin = has('win32') || has('win64')
+let s:is_win = has('win32') || has('win64')
 let s:autotok = 'AUTO332'
 let s:jobs = {} " jobid: { buffer, tempfile, ctx, opt }
 function! asyncomplete#sources#flow#completor(opt, ctx) abort
@@ -10,13 +10,13 @@ function! asyncomplete#sources#flow#completor(opt, ctx) abort
     let l:tempfile = s:write_buffer_to_tempfile(a:ctx)
 
     let l:config = get(a:opt, 'config', {})
-    if get(l:config, 'prefer_local', 0)
+    if get(l:config, 'prefer_local', 1)
         let l:flowbin_path = s:resolve_flowbin_path(l:file, get(l:config, 'flowbin_path', 'flow'))
     else
         let l:flowbin_path = get(l:config, 'flowbin_path', 'flow')
     endif
 
-    if s:iswin
+    if s:is_win
         let l:cmd = ['cmd', '/c', 'cd "' . expand('%:p:h') . '" && ' . l:flowbin_path . ' autocomplete --json "' . l:file . '" < "' . l:tempfile . '"']
     else
         let l:cmd = ['sh', '-c', 'cd "' . expand('%:p:h') . '" && ' . l:flowbin_path . ' autocomplete --json "' . l:file . '" < "' . l:tempfile . '"']
@@ -71,24 +71,25 @@ function! asyncomplete#sources#flow#get_source_options(opts)
        \ })
 endfunction
 
-let s:flowbin_path_by_dir = {} " dir: <path to flow>
+let s:cached_flowbin_path_by_dir = {} " dir: <path to flow>
 
 function! s:resolve_flowbin_path(file, fallback)
     let l:dir = fnamemodify(a:file, ':h')
-    if len(s:flowbin_path_by_dir) > 100
-      let s:flowbin_path_by_dir = {}
+    " cap the cache so it won't grow unlimited and cause a memory leak
+    if len(s:cached_flowbin_path_by_dir) > 100
+      let s:cached_flowbin_path_by_dir = {}
     endif
-    if !has_key(s:flowbin_path_by_dir, l:dir)
+    if !has_key(s:cached_flowbin_path_by_dir, l:dir)
         let l:node_dir = asyncomplete#utils#find_nearest_parent_directory(a:file, 'node_modules')
-        if s:iswin && filereadable(l:node_dir . '/.bin/flow.cmd')
-            let s:flowbin_path_by_dir[l:dir] = l:node_dir . './.bin/flow.cmd'
+        if s:is_win && filereadable(l:node_dir . '/.bin/flow.cmd')
+            let s:cached_flowbin_path_by_dir[l:dir] = l:node_dir . './.bin/flow.cmd'
         elseif filereadable(l:node_dir . '/.bin/flow')
-            let s:flowbin_path_by_dir[l:dir] = l:node_dir . './.bin/flow'
+            let s:cached_flowbin_path_by_dir[l:dir] = l:node_dir . './.bin/flow'
         else
-            let s:flowbin_path_by_dir[l:dir] = a:fallback
+            let s:cached_flowbin_path_by_dir[l:dir] = a:fallback
         endif
     endif
-    return s:flowbin_path_by_dir[l:dir]
+    return s:cached_flowbin_path_by_dir[l:dir]
 endfunction
 
 function! s:write_buffer_to_tempfile(ctx) abort
