@@ -75,7 +75,8 @@ let s:cached_flowbin_path_by_dir = {} " dir: <path to flow>
 
 function! s:resolve_flowbin_path(file, fallback)
     let l:dir = fnamemodify(a:file, ':h')
-    " cap the cache so it won't grow unlimited and cause a memory leak
+    " cap the cache so it won't grow unlimited, ideally we should use LRU
+    " strategy instead
     if len(s:cached_flowbin_path_by_dir) > 100
       let s:cached_flowbin_path_by_dir = {}
     endif
